@@ -1,0 +1,7 @@
+{
+    "name" : "nasdaq-scraper",
+    "dependencies" : {
+        "request" : "latest",
+        "cheerio" : "latest"
+    }
+}
