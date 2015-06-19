@@ -1,6 +1,7 @@
 {
-    "name" : "yahoo-exchange",
+    "name" : "trading-game",
     "dependencies" : {
-        "request" : "latest"
+        "express"       : "latest",
+        "body-parser"   : "latest"
     }
 }
