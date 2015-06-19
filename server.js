@@ -19,7 +19,7 @@ var router = express.Router();
 router.route('/buy')
     .post(function(req, res) {
         var b = req.body;
-        transact('buy', b.symbol, b.amount, b.team, function(transaction) {
+        transact('buy', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -27,7 +27,7 @@ router.route('/buy')
 router.route('/sell')
     .post(function(req, res) {
         var b = req.body;
-        transact('sell', b.symbol, b.amount, b.team, function(transaction) {
+        transact('sell', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -38,27 +38,45 @@ console.log('Started trading game server at port 8080...')
 
 function transact(action, symbol, amount, team_name, callback) {
     var team = teams[team_name],
-        account = team.account,
-        position = team.positions[symbol] ? team.positions[symbol] : 0;
+        account = team.account;
+
+    if(team.positions[symbol] === undefined) {
+        team.positions[symbol] = 0;
+    }
+    var position = parseFloat(team.positions[symbol]);
 
     query_yahoo(symbol, function(price) {
-        var total = price * amount;
+        var total = price * amount,
+            success = false;
 
         if(action === 'buy' && account >= total) {
-            team.account -= total;
-            team.positions[symbol] += amount;
+            team.account = account - total;
+            team.positions[symbol] = position + amount;
+            success = true;
         }
 
         if(action === 'sell' && position >= amount) {
-            team.account += total;
-            team.positions[symbol] -= amount;
+            team.account = account + total;
+            team.positions[symbol] = position - amount;
+            success = true;
         }
 
-        transaction = {action:action, symbol:symbol, price:price, amount:amount, position: position, account:team.account};
-        team.transactions.push(transaction)
+        if(success) {
+            transaction = {
+                action      : action,
+                symbol      : symbol,
+                price       : price,
+                amount      : amount,
+                position    : team.positions[symbol],
+                account     : team.account
+            };
+            team.transactions.push(transaction)
 
-        console.log(transaction);
-        callback(transaction);
+            console.log(transaction);
+            callback(transaction);
+        } else {
+            callback({error:'fail!'})
+        }
 
     });
 }
