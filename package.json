@@ -1,7 +1,6 @@
 {
-    "name" : "nasdaq-scraper",
+    "name" : "yahoo-exchange",
     "dependencies" : {
-        "request" : "latest",
-        "cheerio" : "latest"
+        "request" : "latest"
     }
 }
