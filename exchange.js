@@ -47,18 +47,27 @@ function transact(action, symbol, amount, team_name, callback) {
 
     query_yahoo(symbol, function(price) {
         var total = price * amount,
-            success = false;
+            success = false,
+            error = '';
 
-        if(action === 'buy' && account >= total) {
-            team.account = account - total;
-            team.positions[symbol] = position + amount;
-            success = true;
+        if(action === 'buy') {
+            if(account >= total) {
+                team.account = account - total;
+                team.positions[symbol] = position + amount;
+                success = true;
+            } else {
+                error = 'Sorry, '+ symbol +' is too expensive: '+ account +' < '+ total;
+            }
         }
 
-        if(action === 'sell' && position >= amount) {
-            team.account = account + total;
-            team.positions[symbol] = position - amount;
-            success = true;
+        if(action === 'sell') {
+            if(position >= amount) {
+                team.account = account + total;
+                team.positions[symbol] = position - amount;
+                success = true;
+            } else {
+                error = "Can't sell "+ symbol +" because you don't own enough: "+ position +" < "+ amount;
+            }
         }
 
         if(success) {
@@ -72,10 +81,10 @@ function transact(action, symbol, amount, team_name, callback) {
             };
             team.transactions.push(transaction)
 
-            console.log(transaction);
+            console.log(JSON.stringify(transaction));
             callback(transaction);
         } else {
-            callback({error:'fail!'})
+            callback({error: error})
         }
 
     });
