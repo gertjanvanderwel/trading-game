@@ -19,7 +19,7 @@ var router = express.Router();
 router.route('/buy')
     .post(function(req, res) {
         var b = req.body;
-        transact('buy', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
+        trade('buy', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -27,7 +27,7 @@ router.route('/buy')
 router.route('/sell')
     .post(function(req, res) {
         var b = req.body;
-        transact('sell', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
+        trade('sell', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -36,7 +36,7 @@ app.use('/', router);
 app.listen(8080);
 console.log('Started trading game server at port 8080...')
 
-function transact(action, symbol, amount, team_name, callback) {
+function trade(action, symbol, amount, team_name, callback) {
     var team = teams[team_name],
         account = team.account;
 
@@ -45,7 +45,7 @@ function transact(action, symbol, amount, team_name, callback) {
     }
     var position = parseFloat(team.positions[symbol]);
 
-    query_yahoo(symbol, function(price) {
+    query_yahoo(action, symbol, function(price) {
         var total = price * amount,
             success = false,
             error = '';
@@ -90,7 +90,7 @@ function transact(action, symbol, amount, team_name, callback) {
     });
 }
 
-function query_yahoo(symbol, callback) {
+function query_yahoo(action, symbol, callback) {
     var url = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20%3D%22"+ symbol +"%22&format=json&diagnostics=false&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback=";
 
     http.get(url, function(res) {
@@ -102,7 +102,11 @@ function query_yahoo(symbol, callback) {
 
         res.on('end', function() {
             var response = JSON.parse(body);
-            callback(response.query.results.quote.Ask);
+            if(action === 'buy') {
+                callback(response.query.results.quote.Ask);
+            } else if(action === 'sell') {
+                callback(response.query.results.quote.Bid);
+            }
         });
     })
 }
