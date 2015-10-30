@@ -1,13 +1,12 @@
 var express = require('express');
 var parser = require('body-parser');
-var http = require('http');
+var request = require('request');
+
+var account = 10000;
+var btcAPI = "http://api.coindesk.com/v1/bpi/currentprice.json";
 
 var teams = {
-    'gertje' : {
-        account: 2000,
-        positions: [],
-        transactions: []
-    }
+    'team1' : {btc: 0, eur:10000, transactions: []}
 }
 
 var app = express();
@@ -19,7 +18,7 @@ var router = express.Router();
 router.route('/buy')
     .post(function(req, res) {
         var b = req.body;
-        trade('buy', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
+        trade('buy', parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -27,7 +26,7 @@ router.route('/buy')
 router.route('/sell')
     .post(function(req, res) {
         var b = req.body;
-        trade('sell', b.symbol, parseFloat(b.amount), b.team, function(transaction) {
+        trade('sell', parseFloat(b.amount), b.team, function(transaction) {
             res.json(transaction);
         });
     });
@@ -36,48 +35,47 @@ app.use('/', router);
 app.listen(8080);
 console.log('Started trading game server at port 8080...')
 
-function trade(action, symbol, amount, team_name, callback) {
+function trade(action, amountBtc, team_name, callback) {
     var team = teams[team_name],
-        account = team.account;
+        eur = team.eur,
+        btc = team.btc;
 
-    if(team.positions[symbol] === undefined) {
-        team.positions[symbol] = 0;
-    }
-    var position = parseFloat(team.positions[symbol]);
+    request.get(btcAPI, function(err, res, body) {
+        var response = JSON.parse(body);
+        var price = parseFloat(response.bpi.EUR.rate);
 
-    query_yahoo(action, symbol, function(price) {
-        var total = price * amount,
+        var total = price * amountBtc,
             success = false,
             error = '';
 
         if(action === 'buy') {
-            if(account >= total) {
-                team.account = account - total;
-                team.positions[symbol] = position + amount;
+            if(eur >= total) {
+                team.eur = eur - total;
+                team.btc = btc + amountBtc;
                 success = true;
             } else {
-                error = 'Sorry, '+ symbol +' is too expensive: '+ account +' < '+ total;
+                error = "You can't buy more BTC, because you are out of money.";
             }
         }
 
         if(action === 'sell') {
-            if(position >= amount) {
-                team.account = account + total;
-                team.positions[symbol] = position - amount;
+            if(btc >= amountBtc) {
+                team.eur = eur + total;
+                team.btc = btc - amountBtc;
                 success = true;
             } else {
-                error = "Can't sell "+ symbol +" because you don't own enough: "+ position +" < "+ amount;
+                error = "You can't sell more BTC, because you don't own enough";
             }
         }
 
         if(success) {
             transaction = {
+                team_name   : team_name,
                 action      : action,
-                symbol      : symbol,
                 price       : price,
-                amount      : amount,
-                position    : team.positions[symbol],
-                account     : team.account
+                amount      : amountBtc,
+                eur         : team.eur,
+                btc         : team.btc
             };
             team.transactions.push(transaction)
 
@@ -90,23 +88,4 @@ function trade(action, symbol, amount, team_name, callback) {
     });
 }
 
-function query_yahoo(action, symbol, callback) {
-    var url = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20%3D%22"+ symbol +"%22&format=json&diagnostics=false&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback=";
-
-    http.get(url, function(res) {
-        var body = '';
-
-        res.on('data', function(chunk) {
-            body += chunk;
-        });
-
-        res.on('end', function() {
-            var response = JSON.parse(body);
-            if(action === 'buy') {
-                callback(response.query.results.quote.Ask);
-            } else if(action === 'sell') {
-                callback(response.query.results.quote.Bid);
-            }
-        });
-    })
-}
+//trade('buy', 1, 'team1', function(transaction) {})

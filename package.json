@@ -2,6 +2,7 @@
     "name" : "trading-game",
     "dependencies" : {
         "express"       : "latest",
-        "body-parser"   : "latest"
+        "body-parser"   : "latest",
+        "request"       : "latest"
     }
 }

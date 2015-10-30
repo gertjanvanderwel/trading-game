@@ -1,25 +1,16 @@
-var http = require('http');
+var request = require('request');
 
-var team = 'gertje';
-var symbols = [
-    'aapl',
-    'goog',
-    'fb',
-    'z',
-    'amzn',
-    'twtr'
-];
+var team = 'team1';
 var actions = [
     'buy',
     'sell'
 ]
 
 function trade() {
-    var symbol = symbols[Math.floor(Math.random()*symbols.length)],
-        action = actions[Math.floor(Math.random()*actions.length)],
+    var action = actions[Math.floor(Math.random()*actions.length)],
         amount = Math.random();
 
-    var data_str = JSON.stringify({symbol:symbol, action:action, amount:amount, team:team});
+    var data_str = JSON.stringify({action:action, amount:amount, team:team});
 
     var headers = {
       'Content-Type': 'application/json',
@@ -34,22 +25,9 @@ function trade() {
         headers : headers
     };
 
-    var req = http.request(options, function(res) {
-        res.setEncoding('utf-8');
-
-        var response_str = '';
-
-        res.on('data', function(data) {
-            response_str += data;
-        });
-
-        res.on('end', function() {
-            console.log(response_str);
-        });
+    request.post({url:'http://localhost:8080/'+action, headers: headers, body:data_str}, function(err, res, body) {
+        console.log(body);
     });
-
-    req.write(data_str);
-    req.end();
 }
 
 setInterval(trade, 2000);
